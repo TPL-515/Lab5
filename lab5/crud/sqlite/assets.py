@@ -5,30 +5,14 @@ from datetime import datetime
 # Get our Logger
 logger = get_dagster_logger()
 
-@asset(description="This asset checks if a database has been initialized and if not creates it.")
-def initialize():
-    logger.info('Checking if database exists')
-    # Set our database name
-    db = Path('database.db')
-    # Check if the database exists
-    if not db.exists():
-        logger.warn('Database does not exist creating now')
-    # get connection
-    try:
-        con = sqlite3.connect(db)
-        logger.info('Succesfully connected to the database')
-    except:
-        logger.error('Failed to create or connect to database')
-    return db
+# Get our sql session
+db = Path('database.db')
+con = sqlite3.connect(db)
+cursor = con.cursor()
+
 
 @asset(description="This checks if our table exists")
-def create_table(initialize):
-    logger.info('Getting the database connection')
-    try:
-        con = sqlite3.connect(initalize)
-        cursor = con.cursor()
-    except:
-        logger.error('Could not connect to the database cursor.')
+def create_table():
 
     logger.info('Create table if it does not exist within our database')
 
@@ -43,36 +27,36 @@ def create_table(initialize):
         cursor.execute(create_table_text)
     except:
         logger.error('Had issues with creating the table in the database')
+        raise Exception
 
 @asset(description="Return metadata for the database")
-def display_db_meta(initialize):
+def display_db_meta(create_table):
     logger.info('Getting the meta data for our database')
-    try:
-        logger.info(intialize)
-        con = sqlite3.connect(initalize)
-        cursor = con.cursor()
-    except:
-        logger.error('Could not connect to the database cursor.')
     
-    ids, names, emails, ingest_dates = cursor.execute("SELECT id, name, email ,ingest_date FROM demo ORDER BY name DESC")
+    cursor.execute("SELECT id, name, email, ingest_date FROM demo")
+    dat = cursor.fetchall()
 
-    logger.info(f'Total number of entries in the table {len(ids)}')
+    logger.info(f'Total number of entries in the table {len(dat)}')
+    print(dat)
 
-@asset(description="This allows the user to pass in a list of data that then gets ingested into the database.")
-def add_data(initialize):
-    data = [(1, 'Joe Random', 'jrandom@mac.com', datetime.now().strftime('yyyy-MM-dd HH:mm:ss'))]
-    try:
-        logger.info(f"database is: {intialize}")
-        con = sqlite3.connect(initalize)
-        cursor = con.cursor()
-    except:
-        logger.error('Could not connect to the database cursor.')
+@asset(description="This ingests an example bit of data into the database")
+def add_data(create_table):
+    data = [(1, 'Joe Random', 'jrandom@mac.com', datetime.now())]
     
     logger.info(f'Injesting {len(data)} rows into the database')
-    try:
-        cursor.executemany("INSERT INTO demo VALUES(?, ?, ?, ?)", data)
-    except:
-        logger.error('Failed to ingest data into the database.')
+    
+    cursor.executemany("INSERT INTO demo VALUES(?, ?, ?, ?)", data)
+    con.commit()
+    con.close()
+
+@asset(description="This allows the user to delete all the data from the database")
+def remove_data():
+    logger.info('Deleting all data from the database.')
+    cursor.execute('DELETE FROM demo')
+    con.commit()
+    con.close()
+
+
 
         
 

@@ -30,9 +30,9 @@ For this lab you will be asked to perform the following tasks
 
 1) Look in the U.I. and find the "generate data" job
 
-2) Materialize the asset and look at the data preview.
+2) Materialize the job and look at the data preview.
 
-3) Write a job that ingests the generated data into a sqlite database.
+3) Using existing assets write a job that adds a row of randomly generated data to the database.
 
 4) Have the job run on a cron every 1 min.
 
